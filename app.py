@@ -1,17 +1,41 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
-# Configuração da Página
+# 1. Configuração da Página
 st.set_page_config(page_title="Gestão de Combustível PRO", layout="wide")
 
-# Estilização Personalizada (Fundo e Cards)
+# 2. Estilização Azul Royal e Números Grandes
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    div[data-testid="stMetricValue"] { color: #00ffcc; font-size: 30px; }
-    .stPlotlyChart { border-radius: 15px; box-shadow: 0px 4px 20px rgba(0, 255, 204, 0.1); }
+    /* Fundo Azul Royal Degradê */
+    .stApp {
+        background: linear-gradient(135deg, #002366 0%, #000080 100%);
+        color: white;
+    }
+    
+    /* Títulos e textos */
+    h1, h2, h3, p { color: white !important; }
+
+    /* Estilização dos Números (KPIs) - Tamanho 30, Negrito e Contraste */
+    [data-testid="stMetricValue"] {
+        font-size: 30px !important;
+        font-weight: bold !important;
+        color: #00f2ff !important; /* Ciano para contraste com azul royal */
+    }
+    
+    /* Estilização dos Rótulos dos KPIs */
+    [data-testid="stMetricLabel"] {
+        font-size: 18px !important;
+        color: #ffffff !important;
+    }
+
+    /* Bordas dos Gráficos */
+    .stPlotlyChart {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -22,59 +46,42 @@ URL = f"https://docs.google.com/spreadsheets/d/{ID_PLANILHA}/export?format=csv"
 try:
     df = pd.read_csv(URL)
     df.columns = df.columns.str.strip()
+    df['QTOS LTS'] = pd.to_numeric(df['QTOS LTS'], errors='coerce').fillna(0)
 
-    st.title("🚢 Sistema de Controle de Combustível Fiscal")
-    st.write(f"Dados atualizados em: {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}")
+    st.title("🚢 Painel Executivo - Gestão de Combustível")
     st.markdown("---")
 
-    # --- INDICADORES TOPO ---
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Litros Totais", f"{df['QTOS LTS'].sum():,.0f} L")
-    c2.metric("Abastecimentos", f"{len(df)}")
-    c3.metric("Média/Abastecimento", f"{df['QTOS LTS'].mean():,.0f} L")
-    c4.metric("Cidades Atendidas", f"{df['LOCAL'].nunique()}")
+    # --- KPIs TOPO (Números 30px Negrito) ---
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Volume Total", f"{df['QTOS LTS'].sum():,.0f} L")
+    c2.metric("Total Abastecimentos", len(df))
+    c3.metric("Localidades", df['LOCAL'].nunique())
 
-    st.markdown("### 📊 Análise por Empurrador")
-    
-    # Criando DataFrame de Resumo por Empurrador
-    resumo_emp = df.groupby('EMPURRADOR').agg(
-        Litros_Totais=('QTOS LTS', 'sum'),
-        Qtd_Abastecimentos=('QTOS LTS', 'count')
-    ).reset_index()
+    st.markdown("---")
 
-    col_left, col_right = st.columns(2)
+    # --- GRÁFICOS COM DESIGN ELEGANTE ---
+    col1, col2 = st.columns(2)
 
-    with col_left:
-        # Gráfico de Barras Duplo: Litros e Qtd de Vezes
-        fig_emp = go.Figure()
-        fig_emp.add_trace(go.Bar(x=resumo_emp['EMPURRADOR'], y=resumo_emp['Litros_Totais'], 
-                                 name='Litros Totais', marker_color='#00ffcc'))
-        fig_emp.add_trace(go.Scatter(x=resumo_emp['EMPURRADOR'], y=resumo_emp['Qtd_Abastecimentos'], 
-                                     name='Qtd Abastecimentos', yaxis='y2', mode='lines+markers', line=dict(color='#ffaa00', width=3)))
-        
-        fig_emp.update_layout(
-            title="Volume (L) vs Frequência por Empurrador",
-            yaxis=dict(title="Volume em Litros"),
-            yaxis2=dict(title="Qtd de Vezes", overlaying='y', side='right'),
-            template="plotly_dark",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig_emp, use_container_width=True)
+    with col1:
+        st.subheader("⛽ Litros por Empurrador")
+        resumo_emp = df.groupby('EMPURRADOR')['QTOS LTS'].sum().reset_index()
+        fig_litros = px.bar(resumo_emp, x='EMPURRADOR', y='QTOS LTS', 
+                            text_auto='.2s',
+                            template="plotly_dark")
+        fig_litros.update_traces(marker_color='#00f2ff') # Cor das barras para contraste
+        st.plotly_chart(fig_litros, use_container_width=True)
 
-    with col_right:
-        # Mapa de Calor por Localidade
-        st.subheader("📍 Localização de Abastecimento")
-        df_local = df.groupby(['LOCAL', 'ESTADO']).agg({'QTOS LTS': 'sum', 'EMPURRADOR': 'count'}).reset_index()
-        df_local.columns = ['LOCAL', 'ESTADO', 'LITROS', 'VEZES']
-        
-        fig_map = px.scatter(df_local, x="LOCAL", y="LITROS", size="VEZES", color="ESTADO",
-                             hover_name="LOCAL", size_max=60, title="Volume e Frequência por Local")
-        fig_map.update_layout(template="plotly_dark")
-        st.plotly_chart(fig_map, use_container_width=True)
+    with col2:
+        st.subheader("📍 Frequência por Localidade")
+        df_local = df.groupby('LOCAL').size().reset_index(name='Vezes')
+        fig_local = px.pie(df_local, values='Vezes', names='LOCAL', 
+                           hole=0.4, template="plotly_dark")
+        fig_local.update_traces(textinfo='percent+label')
+        st.plotly_chart(fig_local, use_container_width=True)
 
-    # --- TABELA FINAL ---
-    with st.expander("📄 Visualizar Relatório Detalhado"):
-        st.dataframe(df.style.highlight_max(axis=0, color='#004433'), use_container_width=True)
+    # Tabela detalhada
+    with st.expander("🔍 Ver base de dados completa"):
+        st.dataframe(df)
 
 except Exception as e:
-    st.error(f"Erro ao carregar dados: {e}")
+    st.error(f"Aguardando conexão com os dados... {e}")
