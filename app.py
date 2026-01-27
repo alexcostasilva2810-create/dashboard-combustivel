@@ -1,41 +1,31 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-
-st.set_page_config(page_title="Dashboard Fiscal", layout="wide")
-
-# Conexão com os dados
-ID_PLANILHA = "1sNVY3-zRHn-Oa8sGJOF5GGcfUNSNWwOb9IfcNL3mYGc"
-URL = f"https://docs.google.com/spreadsheets/d/{ID_PLANILHA}/export?format=csv"
-
-st.title("📊 Painel de Controle - Gestão de Combustível")
-st.markdown("---")
-
 try:
     df = pd.read_csv(URL)
+    
+    # Isso remove espaços extras e deixa tudo igual para o Python não se perder
+    df.columns = df.columns.str.strip() 
 
-    # --- LINHA 1: KPIs (Números Grandes) ---
-    col1, col2, col3 = st.columns(3)
+    # --- KPIs ---
+    col1, col2 = st.columns(2)
     col1.metric("Total de Pedidos", len(df))
+    # Usamos o nome exato da sua coluna: 'QTOS LTS'
     col2.metric("Total de Litros", f"{df['QTOS LTS'].sum():,.0f}")
-    col3.metric("Média por Abastecimento", f"{df['QTOS LTS'].mean():,.2f}")
 
     st.markdown("---")
 
-    # --- LINHA 2: GRÁFICOS ---
+    # --- GRÁFICOS ---
     graf_col1, graf_col2 = st.columns(2)
 
     with graf_col1:
         st.subheader("Volume por Empurrador")
-        fig_barras = px.bar(df, x="EMPURRADOR", y="QTOS LTS", color="EMPURRADOR", 
-                            title="Litros por Empurrador")
+        # Criando o gráfico com a coluna 'EMPURRADOR'
+        fig_barras = px.bar(df, x="EMPURRADOR", y="QTOS LTS", color="EMPURRADOR")
         st.plotly_chart(fig_barras, use_container_width=True)
 
     with graf_col2:
-        st.subheader("Distribuição por Estado")
-        fig_pizza = px.pie(df, values="QTOS LTS", names="ESTADO", 
-                           title="Consumo por Estado", hole=0.4)
+        st.subheader("Consumo por Estado")
+        # Criando o gráfico com a coluna 'ESTADO'
+        fig_pizza = px.pie(df, values="QTOS LTS", names="ESTADO", hole=0.4)
         st.plotly_chart(fig_pizza, use_container_width=True)
 
 except Exception as e:
-    st.error("Erro ao carregar gráficos. Verifique se as colunas 'QTOS LTS', 'EMPURRADOR' e 'ESTADO' estão escritas corretamente na planilha.")
+    st.error(f"Ainda há um erro nos nomes das colunas: {e}")
