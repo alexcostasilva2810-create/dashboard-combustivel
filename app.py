@@ -1,28 +1,23 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import folium
+from streamlit_folium import folium_static
 from datetime import datetime
 import pytz
 
-# Limpeza de cache para atualização em tempo real
+# Limpeza e Configuração
 st.cache_data.clear()
+st.set_page_config(page_title="Gestão Naval PRO", layout="wide")
 
-st.set_page_config(page_title="ZION MINITORAMENTO", layout="wide")
-
-# --- CSS: DESIGN CLARO COM NÚMEROS GRANDES (30px) ---
+# Estilo Claro e Elegante
 st.markdown("""
     <style>
     .stApp { background-color: #f8fafc; }
-    div[data-testid="stMetricValue"] { 
-        font-size: 35px !important; 
-        font-weight: bold !important; 
-        color: #1e40af !important; 
-    }
-    .main-title { color: #1e3a8a; font-weight: bold; text-align: center; font-size: 32px; }
+    div[data-testid="stMetricValue"] { font-size: 35px !important; font-weight: bold !important; color: #1e40af !important; }
+    .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
 
-# Horário de Brasília
 fuso_br = pytz.timezone('America/Sao_Paulo')
 agora = datetime.now(fuso_br).strftime('%d/%m/%Y %H:%M:%S')
 
@@ -34,12 +29,11 @@ try:
     df.columns = df.columns.str.strip()
     df['QTOS LTS'] = pd.to_numeric(df['QTOS LTS'], errors='coerce').fillna(0)
 
-    st.markdown(f'<p class="main-title">⚓ DASHBOARD DE ABASTECIMENTO NAVAL</p>', unsafe_allow_html=True)
-    st.write(f"⏱️ **Sincronizado em:** {agora}")
+    st.title("⚓ MONITORAMENTO GEOGRÁFICO DE FROTA")
+    st.write(f"⏱️ **Sincronizado:** {agora}")
 
-    # --- KPIs ---
+    # KPIs Principais
     c1, c2, c3, c4 = st.columns(4)
-    # Formatação para exibir números inteiros sem 'k'
     c1.metric("Volume Total (L)", f"{int(df['QTOS LTS'].sum())}")
     c2.metric("Abastecimentos", f"{len(df)}")
     c3.metric("Cidades", f"{df['LOCAL'].nunique()}")
@@ -47,48 +41,40 @@ try:
 
     st.markdown("---")
 
-    # --- MAPA DE ALTA NITIDEZ (MAPBOX) ---
-    st.subheader("📍 Localização Exata dos Abastecimentos")
+    # --- O MAPA NITIDÍSSIMO (FOLIUM) ---
+    st.subheader("📍 Mapa Interativo de Localização")
     
-    # Criando o mapa com estilo 'open-street-map' que é muito mais nítido
-    # Se você tiver Latitude e Longitude na planilha, substitua 'LOCAL' por elas abaixo.
-    # Caso contrário, o Plotly usará os nomes das cidades/estados.
-    
-    fig_mapa = px.scatter_mapbox(df, 
-                                lat=None, lon=None, # Caso tenha coordenadas, use aqui
-                                color="LOCAL", 
-                                size="QTOS LTS",
-                                hover_name="LOCAL",
-                                hover_data=["EMPURRADOR", "QTOS LTS", "FORNECEDOR"],
-                                zoom=4, 
-                                height=600)
+    # Criamos o mapa base centralizado na Região Norte
+    m = folium.Map(location=[-3.11, -60.02], zoom_start=5, tiles="OpenStreetMap")
 
-    # Estilo do mapa: 'carto-positron' (Claro e nítido) ou 'open-street-map'
-    fig_mapa.update_layout(
-        mapbox_style="open-street-map", 
-        margin={"r":0,"t":0,"l":0,"b":0},
-        showlegend=True
-    )
-    
-    # Tenta centralizar o mapa no Brasil/Região Norte se não houver coordenadas
-    fig_mapa.update_layout(mapbox_center={"lat": -3.11, "lon": -60.02}) # Foco inicial próximo a Manaus/Belém
+    # Dicionário de cores para os Empurradores ficarem coloridos
+    cores = ['blue', 'green', 'red', 'purple', 'orange', 'darkred', 'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue', 'darkpurple', 'white', 'pink', 'lightblue', 'lightgreen', 'gray', 'black', 'lightgray']
+    empurradores = df['EMPURRADOR'].unique()
+    cor_map = {emp: cores[i % len(cores)] for i, emp in enumerate(empurradores)}
 
-    st.plotly_chart(fig_mapa, use_container_width=True)
+    # Adicionando os pontos (Simulação por Localidade se não houver Lat/Long exata)
+    # Nota: Se você adicionar colunas 'LATITUDE' e 'LONGITUDE' na planilha, o mapa fica 100% preciso.
+    # Por enquanto, ele agrupa por Local.
+    for index, row in df.iterrows():
+        # Exemplo de coordenadas fixas para teste baseado nos nomes das cidades comuns na sua região
+        # Se a planilha tiver Lat/Long, use: lat, lon = row['LATITUDE'], row['LONGITUDE']
+        # Aqui o Folium precisa de uma coordenada para não dar o erro da sua imagem.
+        if "MANAUS" in str(row['LOCAL']).upper(): lat, lon = -3.11, -60.02
+        elif "BELEM" in str(row['LOCAL']).upper(): lat, lon = -1.45, -48.50
+        elif "ITACOATIARA" in str(row['LOCAL']).upper(): lat, lon = -3.14, -58.44
+        elif "SANTAREM" in str(row['LOCAL']).upper(): lat, lon = -2.44, -54.70
+        else: lat, lon = -3.11, -60.02 # Padrão
 
-    # --- RANKING DE FORNECEDORES ---
-    st.markdown("---")
-    st.subheader("🏢 Ranking de Compras por Fornecedor")
-    df_forn = df.groupby('FORNECEDOR')['QTOS LTS'].sum().reset_index().sort_values('QTOS LTS', ascending=True)
-    
-    fig_forn = px.bar(df_forn, x='QTOS LTS', y='FORNECEDOR', orientation='h',
-                      text_auto=True, color='QTOS LTS', 
-                      color_continuous_scale='Blues')
-    
-    fig_forn.update_layout(xaxis_title="Total de Litros", yaxis_title="Fornecedor")
-    st.plotly_chart(fig_forn, use_container_width=True)
+        folium.Marker(
+            [lat, lon],
+            popup=f"<b>Empurrador:</b> {row['EMPURRADOR']}<br><b>Litros:</b> {int(row['QTOS LTS'])}",
+            tooltip=row['LOCAL'],
+            icon=folium.Icon(color=cor_map.get(row['EMPURRADOR'], 'blue'), icon='ship', prefix='fa')
+        ).add_to(m)
+
+    folium_static(m, width=1300, height=500)
 
 except Exception as e:
-    st.error(f"Erro na conexão: {e}")
+    st.error(f"Erro ao carregar dados: {e}")
 
-# Atualização automática
 st.markdown("<script>setTimeout(function(){window.location.reload();}, 60000);</script>", unsafe_allow_html=True)
