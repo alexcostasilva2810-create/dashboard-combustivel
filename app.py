@@ -5,7 +5,7 @@ import plotly.express as px
 # =========================================================
 # CONFIGURAÇÃO DE TAMANHO - MEXA SÓ AQUI PARA MUDAR A FONTE
 # =========================================================
-TAMANHO_FONTE_KPI = "110px"    # <--- AQUI MUDA O NÚMERO GIGANTE
+TAMANHO_FONTE_KPI = "50px"    # <--- AQUI MUDA O NÚMERO GIGANTE
 TAMANHO_FONTE_TEXTO = "45px"  # <--- AQUI MUDA O NOME EM CIMA DO NÚMERO
 COR_DO_NUMERO = "#00ffcc"      # VERDE NEON
 # =========================================================
