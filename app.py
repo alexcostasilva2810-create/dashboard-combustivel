@@ -30,7 +30,7 @@ st.markdown(f"""
 #------------------------------------------------------------------------------#
 # Ajuste aqui o tamanho dos números de Litros e Abastecimentos.
 TAMANHO_NUMEROS_PAINEL = "95px"   # O número grande
-TAMANHO_LETRAS_PAINEL = "40px"    # O texto explicativo
+TAMANHO_LETRAS_PAINEL = "50px"    # O texto explicativo
 COR_VALOR_PAINEL = "#00ffcc"
 
 st.markdown(f"""
