@@ -21,7 +21,7 @@ st.markdown(f"""
     /* ESTILO DOS CARDS */
     div[data-testid="stMetric"] {{
         background-color: #001529; border: 4px solid #00d4ff;
-        border-radius: 20px; padding: 40px !important; text-align: center;
+        border-radius: 40px; padding: 50px !important; text-align: center;
     }}
 
     /* AQUI É ONDE A MÁGICA ACONTECE NO NÚMERO (KPI) */
