@@ -3,66 +3,57 @@ import pandas as pd
 import plotly.express as px
 
 # =========================================================
-# BLOCO 1: CONFIGURAÇÕES DE TAMANHO E COR (MEXA AQUI)
+# CONFIGURAÇÃO DE TAMANHO - MEXA SÓ AQUI PARA MUDAR A FONTE
 # =========================================================
-TAMANHO_NUMERO = "80px"      # Tamanho do número (80, 90, 100...)
-TAMANHO_LEGENDA = "40px"     # Tamanho do texto acima do número
-COR_NEON = "#00ffcc"         # Cor Verde Água Neon
-FONTE_PESO = "900"           # Grossura da letra (Negrito Máximo)
+TAMANHO_FONTE_KPI = "110px"    # <--- AQUI MUDA O NÚMERO GIGANTE
+TAMANHO_FONTE_TEXTO = "45px"  # <--- AQUI MUDA O NOME EM CIMA DO NÚMERO
+COR_DO_NUMERO = "#00ffcc"      # VERDE NEON
+# =========================================================
 
 st.set_page_config(page_title="ZION MONITORAMENTO", layout="wide")
 st.cache_data.clear()
 
+# Este bloco abaixo aplica o tamanho que você escolheu ali em cima
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #000b1a; color: white; }}
     
-    .zion-header {{
-        background-color: #001f3f; color: {COR_NEON}; padding: 20px; 
-        border-radius: 15px; font-size: 45px; font-weight: 900; 
-        text-align: center; border: 4px solid {COR_NEON}; margin-bottom: 40px;
-    }}
-
-    /* CARDS DOS NÚMEROS */
+    /* ESTILO DOS CARDS */
     div[data-testid="stMetric"] {{
         background-color: #001529; border: 4px solid #00d4ff;
-        border-radius: 25px; padding: 50px !important; text-align: center;
+        border-radius: 20px; padding: 40px !important; text-align: center;
     }}
 
-    /* NÚMEROS GIGANTES */
+    /* AQUI É ONDE A MÁGICA ACONTECE NO NÚMERO (KPI) */
     div[data-testid="stMetricValue"] {{
-        font-size: {TAMANHO_NUMERO} !important; 
-        font-weight: {FONTE_PESO} !important; 
-        color: {COR_NEON} !important;
-        line-height: 1.0;
+        font-size: {TAMANHO_FONTE_KPI} !important; 
+        font-weight: 900 !important; 
+        color: {COR_DO_NUMERO} !important;
+        line-height: 1;
     }}
 
-    /* TEXTO DOS PAINÉIS */
+    /* AQUI É ONDE A MÁGICA ACONTECE NA LEGENDA */
     label[data-testid="stMetricLabel"] {{ 
-        color: #ffffff !important; 
-        font-size: {TAMANHO_LEGENDA} !important; 
+        font-size: {TAMANHO_FONTE_TEXTO} !important; 
         font-weight: 800 !important;
+        color: white !important;
         text-transform: uppercase;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# =========================================================
-# BLOCO 2: DADOS (NÃO MEXER AQUI)
-# =========================================================
+# CONEXÃO COM A PLANILHA
 URL = "https://docs.google.com/spreadsheets/d/1sNVY3-zRHn-Oa8sGJOF5GGcfUNSNWwOb9IfcNL3mYGc/export?format=csv"
 
 try:
     df = pd.read_csv(URL)
     df.columns = df.columns.str.strip()
+    # Corrige o erro de 'float' e 'str' que apareceu na sua imagem
     df['QTOS LTS'] = pd.to_numeric(df['QTOS LTS'], errors='coerce').fillna(0)
-    df['FORNECEDOR'] = df['FORNECEDOR'].astype(str)
-    df['EMPURRADOR'] = df['EMPURRADOR'].astype(str)
 
-    # TÍTULO NO TOPO
-    st.markdown('<div class="zion-header">ZION MONITORAMENTO</div>', unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align:center; color:{COR_DO_NUMERO}; font-size:50px;'>ZION MONITORAMENTO</h1>", unsafe_allow_html=True)
 
-    # EXIBIÇÃO DOS PAINÉIS
+    # EXIBIÇÃO DOS PAINÉIS LADO A LADO
     c1, c2 = st.columns(2)
     with c1:
         total_lts = int(df['QTOS LTS'].sum())
@@ -70,26 +61,28 @@ try:
     with c2:
         st.metric("ABASTECIMENTOS", len(df))
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    # GRÁFICOS ABAIXO
-    col_esq, col_dir = st.columns(2)
-    with col_esq:
-        st.markdown("<h3 style='text-align:center;'>🚢 LITROS POR EMPURRADOR</h3>", unsafe_allow_html=True)
-        fig1 = px.bar(df.groupby('EMPURRADOR')['QTOS LTS'].sum().reset_index(), 
-                      x='EMPURRADOR', y='QTOS LTS', text_auto='.2s')
-        fig1.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', font=dict(size=18))
+    # GRÁFICOS QUE VOCÊ PEDIU
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("<h2 style='text-align:center;'>LITROS POR EMPURRADOR</h2>", unsafe_allow_html=True)
+        # Agrupa os litros por empurrador como você exigiu
+        resumo_emp = df.groupby('EMPURRADOR')['QTOS LTS'].sum().reset_index()
+        fig1 = px.bar(resumo_emp, x='EMPURRADOR', y='QTOS LTS', text_auto='.2s', color_discrete_sequence=[COR_DO_NUMERO])
+        fig1.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', font=dict(size=20))
         st.plotly_chart(fig1, use_container_width=True)
 
-    with col_dir:
-        st.markdown("<h3 style='text-align:center;'>🏢 RANKING FORNECEDORES</h3>", unsafe_allow_html=True)
+    with col2:
+        st.markdown("<h2 style='text-align:center;'>RANKING FORNECEDORES</h2>", unsafe_allow_html=True)
+        # Conta os atendimentos por fornecedor
         df_forn = df['FORNECEDOR'].value_counts().reset_index()
-        fig2 = px.bar(df_forn, x='count', y='FORNECEDOR', orientation='h', text_auto=True)
-        fig2.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', font=dict(size=18))
+        fig2 = px.bar(df_forn, x='count', y='FORNECEDOR', orientation='h', text_auto=True, color_discrete_sequence=['#00d4ff'])
+        fig2.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', font=dict(size=20))
         st.plotly_chart(fig2, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Erro nos dados: {e}")
+    st.error(f"Erro ao carregar dados: {e}")
 
-# REFRESH AUTOMÁTICO
+# Refresh automático
 st.markdown("<script>setTimeout(function(){window.location.reload();},30000);</script>", unsafe_allow_html=True)
