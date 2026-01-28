@@ -72,7 +72,7 @@ except:
 #------------------------------------------------------------------------------#
 # Mexa aqui para aumentar o tamanho do gráfico e das letras da esquerda.
 ALTURA_GR_EMPURRADOR = 650
-FONTE_NOMES_EMPURRADOR = 45    # Nomes dos barcos (Samauma, etc)
+FONTE_NOMES_EMPURRADOR = 35    # Nomes dos barcos (Samauma, etc)
 FONTE_VALOR_BARRA_EMP = 30     # Números em cima das barras
 
 st.markdown("---")
