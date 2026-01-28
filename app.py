@@ -1,14 +1,14 @@
-iimport streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import pytz
 
-# Configuração e Limpeza
+# Configurações de Página
 st.set_page_config(page_title="ZION MONITORAMENTO", layout="wide")
 st.cache_data.clear()
 
-# --- ESTILO: AZUL ESCURO PREMIUM + NÚMEROS 50px ---
+# --- ESTILO: AZUL ESCURO + KPIs GIGANTES COLORIDOS ---
 st.markdown("""
     <style>
     .stApp { background-color: #000b1a; color: white; }
@@ -18,7 +18,6 @@ st.markdown("""
         font-size: 40px; font-weight: bold; text-align: center;
         margin-bottom: 30px; border-bottom: 4px solid #00d4ff;
     }
-    /* Estilo dos Cards KPIs */
     div[data-testid="stMetric"] {
         background-color: #001529; border: 2px solid #003366;
         border-radius: 20px; padding: 25px; text-align: center;
@@ -27,18 +26,18 @@ st.markdown("""
     div[data-testid="stMetricValue"] { font-size: 50px !important; font-weight: bold !important; }
     
     /* Cores por Categoria */
-    [data-testid="stMetric"]:nth-child(1) div[data-testid="stMetricValue"] { color: #00ffcc !important; } /* Volume */
-    [data-testid="stMetric"]:nth-child(2) div[data-testid="stMetricValue"] { color: #ffcc00 !important; } /* Qtd */
-    [data-testid="stMetric"]:nth-child(3) div[data-testid="stMetricValue"] { color: #0099ff !important; } /* Forn */
-    [data-testid="stMetric"]:nth-child(4) div[data-testid="stMetricValue"] { color: #ff3333 !important; } /* Cidades */
+    [data-testid="stMetric"]:nth-child(1) div[data-testid="stMetricValue"] { color: #00ffcc !important; } 
+    [data-testid="stMetric"]:nth-child(2) div[data-testid="stMetricValue"] { color: #ffcc00 !important; } 
+    [data-testid="stMetric"]:nth-child(3) div[data-testid="stMetricValue"] { color: #0099ff !important; } 
+    [data-testid="stMetric"]:nth-child(4) div[data-testid="stMetricValue"] { color: #ff3333 !important; } 
     
-    label[data-testid="stMetricLabel"] { color: #cccccc !important; font-size: 18px !important; }
+    label[data-testid="stMetricLabel"] { color: #cccccc !important; font-size: 20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
 st.markdown('<div class="zion-header">ZION MONITORAMENTO</div>', unsafe_allow_html=True)
 
-# Coordenadas fixas para o mapa não falhar mais
+# Coordenadas fixas para o mapa não falhar (Focado no Norte/Nordeste)
 coords_br = {
     'PA': [-1.45, -48.50], 'AM': [-3.11, -60.02], 'RR': [2.82, -60.67],
     'AP': [0.03, -51.06], 'MA': [-2.53, -44.30], 'MT': [-12.64, -55.42],
@@ -52,12 +51,12 @@ try:
     df.columns = df.columns.str.strip()
     df['QTOS LTS'] = pd.to_numeric(df['QTOS LTS'], errors='coerce').fillna(0)
     
-    # Injetando coordenadas no mapa para garantir nitidez
+    # Injetando coordenadas para o mapa funcionar
     df['lat'] = df['ESTADO'].map(lambda x: coords_br.get(str(x).upper(), [None, None])[0])
     df['lon'] = df['ESTADO'].map(lambda x: coords_br.get(str(x).upper(), [None, None])[1])
 
-    # --- FILTRO DROPDAWN ---
-    st.sidebar.header("⚙️ FILTROS")
+    # --- DROPDOWN DE FORNECEDORES ---
+    st.sidebar.markdown("### ⚙️ FILTROS")
     lista_forn = ["TODOS"] + sorted(df['FORNECEDOR'].unique().tolist())
     forn_sel = st.sidebar.selectbox("Escolha o Fornecedor:", lista_forn)
 
@@ -78,11 +77,12 @@ try:
     col_mapa, col_rank = st.columns([2.5, 1.5])
 
     with col_mapa:
-        st.subheader("📍 Mapa de Operações (Norte/Nordeste)")
+        st.subheader("📍 Mapa de Operações")
+        # Usando Scatter Mapbox (Visual de aplicativo profissional)
         fig_map = px.scatter_mapbox(df.dropna(subset=['lat']), 
                                     lat="lat", lon="lon", 
                                     size="QTOS LTS", color="EMPURRADOR",
-                                    hover_name="LOCAL", zoom=4, height=500,
+                                    hover_name="LOCAL", zoom=3.5, height=500,
                                     color_discrete_sequence=px.colors.qualitative.G10)
         fig_map.update_layout(mapbox_style="carto-darkmatter", margin={"r":0,"t":0,"l":0,"b":0})
         st.plotly_chart(fig_map, use_container_width=True)
@@ -94,15 +94,6 @@ try:
                        text_auto=True, color_discrete_sequence=['#00d4ff'])
         fig_f.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', height=450)
         st.plotly_chart(fig_f, use_container_width=True)
-
-    # --- LINHA 3: PERFORMANCE EMPURRADOR ---
-    st.markdown("---")
-    st.subheader("🚢 Volume Abastecido por Empurrador")
-    df_emp = df.groupby('EMPURRADOR')['QTOS LTS'].sum().reset_index().sort_values('QTOS LTS', ascending=False)
-    fig_emp = px.bar(df_emp, x='EMPURRADOR', y='QTOS LTS', text_auto=True, 
-                     color='QTOS LTS', color_continuous_scale='Blues')
-    fig_emp.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_emp, use_container_width=True)
 
 except Exception as e:
     st.error(f"Erro na Planilha: {e}")
