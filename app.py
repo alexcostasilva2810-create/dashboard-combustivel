@@ -5,7 +5,7 @@ import plotly.express as px
 # =========================================================
 # BLOCO 1: CONFIGURAÇÕES DE TAMANHO E COR (MEXA AQUI)
 # =========================================================
-TAMANHO_NUMERO = "100px"      # Tamanho do número (80, 90, 100...)
+TAMANHO_NUMERO = "80px"      # Tamanho do número (80, 90, 100...)
 TAMANHO_LEGENDA = "40px"     # Tamanho do texto acima do número
 COR_NEON = "#00ffcc"         # Cor Verde Água Neon
 FONTE_PESO = "900"           # Grossura da letra (Negrito Máximo)
