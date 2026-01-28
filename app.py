@@ -71,7 +71,7 @@ except:
 #       BLOCO 3: LITROS POR EMPURRADOR (GRÁFICO ESQUERDA)
 #------------------------------------------------------------------------------#
 # Mexa aqui para aumentar o tamanho do gráfico e das letras da esquerda.
-ALTURA_GR_EMPURRADOR = 550
+ALTURA_GR_EMPURRADOR = 750
 FONTE_NOMES_EMPURRADOR = 45    # Nomes dos barcos (Samauma, etc)
 FONTE_VALOR_BARRA_EMP = 40     # Números em cima das barras
 
